@@ -13,7 +13,7 @@ end
 
 function M.execute_command(command, callback, bufnr)
   local clients = {}
-  local candidates = M.get_clients({ name = "kotlin_ls" })
+  local candidates = M.get_clients({ name = "kotlin_lsp" })
 
   for _, c in pairs(candidates) do
     local command_provider = c.server_capabilities.executeCommandProvider

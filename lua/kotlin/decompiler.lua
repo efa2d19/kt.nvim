@@ -22,7 +22,7 @@ function M.open_classfile(fname)
     end
   end
 
-  local clients = lsp.get_clients({ name = "kotlin_ls" })
+  local clients = lsp.get_clients({ name = "kotlin_lsp" })
   local client = clients[1]
 
   assert(client, "Must have a `kotlin-ls` client to load class file or jdt uri")

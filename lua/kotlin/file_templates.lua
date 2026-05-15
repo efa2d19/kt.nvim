@@ -139,7 +139,7 @@ function M.setup(opts)
 
   local augroup = vim.api.nvim_create_augroup("KotlinFileTemplates", { clear = true })
 
-  -- Try to prompt now if the buffer is empty and kotlin_ls is attached.
+  -- Try to prompt now if the buffer is empty and kotlin_lsp is attached.
   -- Otherwise mark it pending so LspAttach can pick it up later.
   -- The `kotlin_template_prompted` flag prevents re-prompting on every
   -- BufEnter (tab switches, window cycling, etc.).
@@ -156,7 +156,7 @@ function M.setup(opts)
       return
     end
 
-    local clients = vim.lsp.get_clients({ bufnr = bufnr, name = "kotlin_ls" })
+    local clients = vim.lsp.get_clients({ bufnr = bufnr, name = "kotlin_lsp" })
     if #clients == 0 then
       vim.b[bufnr].kotlin_pending_template = true
       return
@@ -181,12 +181,12 @@ function M.setup(opts)
   })
 
   -- Backstop: if the LSP attaches *after* we marked the buffer pending
-  -- (BufEnter fired before kotlin_ls came up), prompt as soon as it's ready.
+  -- (BufEnter fired before kotlin_lsp came up), prompt as soon as it's ready.
   vim.api.nvim_create_autocmd("LspAttach", {
     group = augroup,
     callback = function(args)
       local client = vim.lsp.get_client_by_id(args.data.client_id)
-      if not (client and client.name == "kotlin_ls") then
+      if not (client and client.name == "kotlin_lsp") then
         return
       end
       if not vim.b[args.buf].kotlin_pending_template then

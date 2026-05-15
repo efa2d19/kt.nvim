@@ -63,7 +63,7 @@ local function ensure_adapter()
   -- Only set if not already configured by the user.
   if not dap.adapters.kotlin then
     dap.adapters.kotlin = function(cb)
-      local clients = vim.lsp.get_clients({ name = "kotlin_ls" })
+      local clients = vim.lsp.get_clients({ name = "kotlin_lsp" })
       if #clients == 0 then
         vim.notify("kotlin.nvim: Kotlin LSP not running. Open a Kotlin file first.", vim.log.levels.ERROR)
         return
