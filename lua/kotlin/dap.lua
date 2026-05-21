@@ -215,6 +215,7 @@ function M.start(config)
       if input == nil then
         return -- cancelled
       end
+      ---@type integer?
       local port = DEFAULT_JDWP_PORT
       if input ~= "" then
         port = tonumber(input)
