@@ -56,7 +56,7 @@ function M.clean_workspace()
   vim.notify("Cleaning workspace for " .. project_name, vim.log.levels.INFO)
 
   -- Stop existing Kotlin LSP clients
-  for _, client in ipairs(vim.lsp.get_clients({ name = "kotlin_ls" })) do
+  for _, client in ipairs(vim.lsp.get_clients({ name = "kotlin_lsp" })) do
     vim.notify("Stopping Kotlin LSP...", vim.log.levels.INFO)
     vim.lsp.stop_client(client.id)
     vim.cmd("sleep 500m")
@@ -255,6 +255,9 @@ function M.setup_kotlin_lsp(opts)
     }
   end
 
+  -- All launcher paths resolve to the single registered config.
+  vim.lsp.enable("kotlin_lsp")
+
   -- Pass additional JVM args via IJ_JAVA_OPTIONS environment variable
   if opts.jvm_args and type(opts.jvm_args) == "table" and #opts.jvm_args > 0 then
     cmd_env = { IJ_JAVA_OPTIONS = table.concat(opts.jvm_args, " ") }
@@ -316,7 +319,7 @@ function M.setup_kotlin_lsp(opts)
     init_options.buildTools = { [workspace_uri] = opts.build_tool }
   end
 
-  vim.lsp.config.kotlin_ls = {
+  vim.lsp.config.kotlin_lsp = {
     cmd = cmd,
     cmd_env = cmd_env,
     filetypes = { "kotlin" },
@@ -399,8 +402,6 @@ function M.setup_kotlin_lsp(opts)
       end,
     },
   }
-
-  vim.lsp.enable("kotlin_ls")
 end
 
 M.settings = { uri_timeout_ms = 5000 }
