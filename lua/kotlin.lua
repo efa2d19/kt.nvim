@@ -255,9 +255,6 @@ function M.setup_kotlin_lsp(opts)
     }
   end
 
-  -- All launcher paths resolve to the single registered config.
-  vim.lsp.enable("kotlin_lsp")
-
   -- Pass additional JVM args via IJ_JAVA_OPTIONS environment variable
   if opts.jvm_args and type(opts.jvm_args) == "table" and #opts.jvm_args > 0 then
     cmd_env = { IJ_JAVA_OPTIONS = table.concat(opts.jvm_args, " ") }
@@ -269,11 +266,11 @@ function M.setup_kotlin_lsp(opts)
   require("kotlin.diagnostics").setup()
   require("kotlin.package").setup()
 
+  -- Priority-grouped so workspace markers win over per-module build files,
+  -- keeping multi-module projects on a single root.
   local default_root_markers = {
-    "build.gradle",
-    "build.gradle.kts",
-    "pom.xml",
-    "mvnw",
+    { "settings.gradle", "settings.gradle.kts", "mvnw", "mvnw.cmd", ".git" },
+    { "build.gradle", "build.gradle.kts", "pom.xml" },
   }
 
   local root_markers = opts.root_markers or default_root_markers
@@ -402,6 +399,10 @@ function M.setup_kotlin_lsp(opts)
       end,
     },
   }
+
+  -- Enable only after the config above is assigned, otherwise a stray client
+  -- starts from whatever else owns the kotlin_lsp name (e.g. nvim-lspconfig).
+  vim.lsp.enable("kotlin_lsp")
 end
 
 M.settings = { uri_timeout_ms = 5000 }
