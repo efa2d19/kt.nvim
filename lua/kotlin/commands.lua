@@ -302,6 +302,50 @@ function M.toggle_inlay_hints()
   vim.notify("Inlay hints " .. status, vim.log.levels.INFO)
 end
 
+-- Open the kotlin-lsp server log alongside Neovim's LSP log. The server log
+-- path is derived from the running client's `--system-path=<dir>` argument, so
+-- it matches this project's isolated workspace
+-- (<system-path>/system/log/intellij-server.log).
+function M.show_logs()
+  local bufnr = vim.api.nvim_get_current_buf()
+  local clients = vim.lsp.get_clients({ name = "kotlin_lsp", bufnr = bufnr })
+  if #clients == 0 then
+    -- Fall back to any active client (e.g. when invoked from a non-Kotlin buffer)
+    clients = vim.lsp.get_clients({ name = "kotlin_lsp" })
+  end
+
+  local client = clients[1]
+  if not client then
+    vim.notify("Kotlin LSP not running", vim.log.levels.WARN)
+    return
+  end
+
+  local system_path
+  for _, arg in ipairs(client.config.cmd or {}) do
+    if type(arg) == "string" then
+      local path = arg:match("^%-%-system%-path=(.+)$")
+      if path then
+        system_path = path
+        break
+      end
+    end
+  end
+
+  if system_path then
+    local server_log = system_path .. "/system/log/intellij-server.log"
+    if vim.fn.filereadable(server_log) == 1 then
+      vim.cmd("split | edit " .. vim.fn.fnameescape(server_log) .. " | normal! G")
+    else
+      vim.notify("Kotlin LSP server log not found yet: " .. server_log, vim.log.levels.INFO)
+    end
+  else
+    vim.notify("Could not determine server log path (no --system-path in client cmd)", vim.log.levels.WARN)
+  end
+
+  -- Neovim's LSP RPC log (shared across clients).
+  vim.cmd("vsplit | edit " .. vim.fn.fnameescape(vim.lsp.get_log_path()) .. " | normal! G")
+end
+
 -- Register commands
 function M.setup()
   vim.api.nvim_create_user_command("KotlinExportWorkspaceToJson", function()
@@ -386,6 +430,12 @@ function M.setup()
     M.toggle_inlay_hints()
   end, {
     desc = "Toggle inlay hints for the current Kotlin buffer",
+  })
+
+  vim.api.nvim_create_user_command("KotlinShowLogs", function()
+    M.show_logs()
+  end, {
+    desc = "Open the kotlin-lsp server log and Neovim's LSP log",
   })
 end
 

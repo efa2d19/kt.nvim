@@ -488,6 +488,7 @@ kotlin.nvim provides several commands for working with Kotlin code:
 | `:KotlinNewFromTemplate` | Pick an IntelliJ-style file template and apply it to the current buffer (v262.4739.0+) |
 | `:KotlinExportWorkspaceToJson` | Export workspace structure to `workspace.json` |
 | `:KotlinCleanWorkspace` | Clear cached indices and JetBrains analyzer cache for the current project |
+| `:KotlinShowLogs` | Open the kotlin-lsp server log (for the current project) and Neovim's LSP log |
 | `:KotlinDebug [port]` | Attach debugger to a Kotlin/JVM process (JDWP port, default 5005; requires nvim-dap) |
 
 > [!note]
@@ -522,6 +523,9 @@ vim.keymap.set('n', '<leader>kn', ':KotlinRename<CR>', { desc = 'Rename symbol' 
 
 -- Toggle inlay hints
 vim.keymap.set('n', '<leader>kh', ':KotlinInlayHintsToggle<CR>', { desc = 'Toggle inlay hints' })
+
+-- Show LSP logs
+vim.keymap.set('n', '<leader>kl', ':KotlinShowLogs<CR>', { desc = 'Show Kotlin LSP logs' })
 
 -- Debug
 vim.keymap.set('n', '<leader>kd', ':KotlinDebug<CR>', { desc = 'Debug Kotlin program' })
