@@ -37,11 +37,11 @@ local noop_edits = {}
 
 -- True for items that defer their insertion to the kotlin-lsp apply command.
 local function is_command_driven(item)
-  return type(item) == "table" and type(item.command) == "table" and item.command.command == APPLY_COMMAND
+    return type(item) == "table" and type(item.command) == "table" and item.command.command == APPLY_COMMAND
 end
 
 local function item_id(item)
-  return item.data and item.data[DATA_KEY]
+    return item.data and item.data[DATA_KEY]
 end
 
 -- Build a no-op text edit over the identifier prefix ending at the completion
@@ -50,60 +50,60 @@ end
 -- Note: offsets are measured in bytes, which match LSP character offsets for
 -- ASCII identifiers (the common case for Kotlin symbols).
 local function noop_prefix_edit(params)
-  local pos = params.position
-  local bufnr = vim.uri_to_bufnr(params.textDocument.uri)
-  local line = vim.api.nvim_buf_get_lines(bufnr, pos.line, pos.line + 1, false)[1] or ""
+    local pos = params.position
+    local bufnr = vim.uri_to_bufnr(params.textDocument.uri)
+    local line = vim.api.nvim_buf_get_lines(bufnr, pos.line, pos.line + 1, false)[1] or ""
 
-  local start = pos.character
-  while start > 0 and line:sub(start, start):match("[%w_$]") do
-    start = start - 1
-  end
+    local start = pos.character
+    while start > 0 and line:sub(start, start):match("[%w_$]") do
+        start = start - 1
+    end
 
-  return {
-    range = {
-      start = { line = pos.line, character = start },
-      ["end"] = { line = pos.line, character = pos.character },
-    },
-    newText = line:sub(start + 1, pos.character),
-  }
+    return {
+        range = {
+            start = { line = pos.line, character = start },
+            ["end"] = { line = pos.line, character = pos.character },
+        },
+        newText = line:sub(start + 1, pos.character),
+    }
 end
 
 -- Turn each command-driven item's own insertion into a no-op, keeping the apply
 -- command so the server performs the real insertion (like the VS Code client).
 local function patch_completion(result, params)
-  local items = result.items or result
-  if type(items) ~= "table" then
-    return
-  end
-
-  local edit
-  noop_edits = {}
-  for _, item in ipairs(items) do
-    if is_command_driven(item) then
-      edit = edit or noop_prefix_edit(params)
-      item.textEdit = { range = edit.range, newText = edit.newText }
-      item.insertTextFormat = 1 -- PlainText: no snippet expansion of the no-op
-      local id = item_id(item)
-      if id ~= nil then
-        noop_edits[id] = item.textEdit
-      end
+    local items = result.items or result
+    if type(items) ~= "table" then
+        return
     end
-  end
+
+    local edit
+    noop_edits = {}
+    for _, item in ipairs(items) do
+        if is_command_driven(item) then
+            edit = edit or noop_prefix_edit(params)
+            item.textEdit = { range = edit.range, newText = edit.newText }
+            item.insertTextFormat = 1 -- PlainText: no snippet expansion of the no-op
+            local id = item_id(item)
+            if id ~= nil then
+                noop_edits[id] = item.textEdit
+            end
+        end
+    end
 end
 
 -- `completionItem/resolve` re-sends the empty server edit; restore our no-op so
 -- the client still inserts nothing and defers to the command. Documentation and
 -- other resolved fields are left untouched.
 local function patch_resolve(result)
-  if not is_command_driven(result) then
-    return
-  end
-  local id = item_id(result)
-  local edit = id ~= nil and noop_edits[id] or nil
-  if edit then
-    result.textEdit = { range = edit.range, newText = edit.newText }
-    result.insertTextFormat = 1
-  end
+    if not is_command_driven(result) then
+        return
+    end
+    local id = item_id(result)
+    local edit = id ~= nil and noop_edits[id] or nil
+    if edit then
+        result.textEdit = { range = edit.range, newText = edit.newText }
+        result.insertTextFormat = 1
+    end
 end
 
 --- Wrap a client's `request` so completion and resolve responses are normalized
@@ -111,30 +111,32 @@ end
 --- Frontends issue these requests with an inline callback, bypassing the
 --- configured `handlers` table, so the client method is the only universal hook.
 --- Idempotent.
+---@class vim.lsp.Client
+---@field _kotlin_completion_wrapped  boolean
 ---@param client vim.lsp.Client
 function M.attach(client)
-  if client._kotlin_completion_wrapped then
-    return
-  end
-  client._kotlin_completion_wrapped = true
-
-  local orig_request = client.request
-  client.request = function(self, method, params, handler, bufnr)
-    if handler and (method == "textDocument/completion" or method == "completionItem/resolve") then
-      local inner = handler
-      handler = function(err, result, ctx, config)
-        if not err and result then
-          if method == "textDocument/completion" then
-            patch_completion(result, params)
-          else
-            patch_resolve(result)
-          end
-        end
-        return inner(err, result, ctx, config)
-      end
+    if client._kotlin_completion_wrapped then
+        return
     end
-    return orig_request(self, method, params, handler, bufnr)
-  end
+    client._kotlin_completion_wrapped = true
+
+    local orig_request = client.request
+    client.request = function(self, method, params, handler, bufnr)
+        if handler and (method == "textDocument/completion" or method == "completionItem/resolve") then
+            local inner = handler
+            handler = function(err, result, ctx, config)
+                if not err and result then
+                    if method == "textDocument/completion" then
+                        patch_completion(result, params)
+                    else
+                        patch_resolve(result)
+                    end
+                end
+                return inner(err, result, ctx, config)
+            end
+        end
+        return orig_request(self, method, params, handler, bufnr)
+    end
 end
 
 --- Handler for the server-initiated `window/showDocument` request. The apply
@@ -143,13 +145,13 @@ end
 --- delegate anything else to the default handler.
 ---@param result lsp.ShowDocumentParams
 function M.show_document(result, ctx)
-  local ok_uri, bufnr = pcall(vim.uri_to_bufnr, result.uri)
-  if ok_uri and not result.external and result.selection and bufnr == vim.api.nvim_get_current_buf() then
-    local s = result.selection.start
-    pcall(vim.api.nvim_win_set_cursor, 0, { s.line + 1, s.character })
-    return { success = true }
-  end
-  return vim.lsp.handlers["window/showDocument"](nil, result, ctx)
+    local ok_uri, bufnr = pcall(vim.uri_to_bufnr, result.uri)
+    if ok_uri and not result.external and result.selection and bufnr == vim.api.nvim_get_current_buf() then
+        local s = result.selection.start
+        pcall(vim.api.nvim_win_set_cursor, 0, { s.line + 1, s.character })
+        return { success = true }
+    end
+    return vim.lsp.handlers["window/showDocument"](nil, result, ctx)
 end
 
 return M
